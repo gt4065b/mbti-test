@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>MBTI 성격 테스트</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background:#f4f4f4;
+        margin:0;
+        padding:0;
+        display:flex;
+        justify-content:center;
+    }
+    .container {
+        width: 90%;
+        max-width: 600px;
+        background:white;
+        padding:20px;
+        margin-top:40px;
+        border-radius:10px;
+        box-shadow:0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 { text-align:center; }
+    .question { margin:20px 0; }
+    .result-box {
+        margin-top:30px;
+        padding:20px;
+        background:#eee;
+        border-radius:10px;
+        text-align:center;
+        display:none;
+    }
+    button {
+        width:100%;
+        padding:15px;
+        font-size:18px;
+        background:#4a7afe;
+        color:white;
+        border:none;
+        border-radius:8px;
+        cursor:pointer;
+        margin-top:20px;
+    }
+    button:hover { background:#3b63d6; }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h1>MBTI 성격 테스트</h1>
+
+    <div id="questions"></div>
+    <button onclick="calculateMBTI()">결과보기</button>
+
+    <div id="result" class="result-box"></div>
+</div>
+
+<script>
+// MBTI 질문 리스트
+const questions = [
+    { q: "사람들과 함께 있으면 에너지가 난다.", type: "EI" },
+    { q: "혼자만의 시간이 필요하다.", type: "EI" },
+    { q: "현실적이고 실제 경험을 중시한다.", type: "SN" },
+    { q: "아이디어와 가능성을 중시한다.", type: "SN" },
+    { q: "논리와 객관성을 우선한다.", type: "TF" },
+    { q: "감정과 사람 사이의 조화를 중시한다.", type: "TF" },
+    { q: "계획적이고 미리 정리해두는 편이다.", type: "JP" },
+    { q: "즉흥적이고 유연하게 행동하는 편이다.", type: "JP" },
+];
+
+// 질문 출력
+const qContainer = document.getElementById("questions");
+questions.forEach((item, i) => {
+    qContainer.innerHTML += `
+        <div class="question">
+            <p>${i + 1}. ${item.q}</p>
+            <label><input type="radio" name="q${i}" value="A"> 그렇다</label><br>
+            <label><input type="radio" name="q${i}" value="B"> 아니다</label>
+        </div>
+    `;
+});
+
+// MBTI 계산
+function calculateMBTI() {
+    let scores = { E:0, I:0, S:0, N:0, T:0, F:0, J:0, P:0 };
+
+    for (let i = 0; i < questions.length; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) {
+            alert("모든 문항에 답해주세요!");
+            return;
+        }
+
+        const type = questions[i].type;
+        if (selected.value === "A") {
+            scores[type[0]]++;
+        } else {
+            scores[type[1]]++;
+        }
+    }
+
+    const mbti =
+        (scores.E > scores.I ? "E" : "I") +
+        (scores.S > scores.N ? "S" : "N") +
+        (scores.T > scores.F ? "T" : "F") +
+        (scores.J > scores.P ? "J" : "P");
+
+    document.getElementById("result").style.display = "block";
+    document.getElementById("result").innerHTML = `
+        <h2>당신의 MBTI는 <strong>${mbti}</strong> 입니다!</h2>
+    `;
+}
+</script>
+
+</body>
+</html>
