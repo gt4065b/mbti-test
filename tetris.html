@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>테트리스</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a2e;
+    color: #eee;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .wrapper {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ── 게임 패널 ── */
+  .game-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 2rem;
+    letter-spacing: 4px;
+    color: #e94560;
+    text-shadow: 0 0 12px #e94560;
+  }
+
+  #game-canvas {
+    border: 3px solid #e94560;
+    box-shadow: 0 0 20px #e9456044;
+    display: block;
+    background: #0f0f1a;
+  }
+
+  /* ── 사이드 패널 ── */
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 160px;
+  }
+
+  .info-box {
+    background: #16213e;
+    border: 2px solid #0f3460;
+    border-radius: 8px;
+    padding: 14px;
+  }
+
+  .info-box h3 {
+    font-size: 0.75rem;
+    letter-spacing: 2px;
+    color: #e94560;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  .info-box .val {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: #fff;
+  }
+
+  #next-canvas {
+    display: block;
+    background: #0f0f1a;
+    border-radius: 4px;
+  }
+
+  .btn {
+    width: 100%;
+    padding: 12px;
+    font-size: 1rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+  }
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: #e94560;
+    color: #fff;
+    box-shadow: 0 4px 14px #e9456044;
+  }
+  .btn-primary:hover { background: #c73652; }
+
+  .btn-secondary {
+    background: #0f3460;
+    color: #eee;
+  }
+  .btn-secondary:hover { background: #1a4a80; }
+
+  .controls-hint {
+    background: #16213e;
+    border: 2px solid #0f3460;
+    border-radius: 8px;
+    padding: 14px;
+    font-size: 0.8rem;
+    line-height: 1.8;
+    color: #aaa;
+  }
+  .controls-hint b { color: #e94560; }
+
+  /* ── 오버레이 (게임 오버 / 리더보드) ── */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.hidden { display: none; }
+
+  .modal {
+    background: #16213e;
+    border: 2px solid #e94560;
+    border-radius: 14px;
+    padding: 30px 36px;
+    max-width: 420px;
+    width: 90%;
+    text-align: center;
+    box-shadow: 0 0 40px #e9456066;
+    animation: pop 0.25s ease;
+  }
+  @keyframes pop {
+    from { transform: scale(0.85); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+  }
+
+  .modal h2 {
+    font-size: 1.8rem;
+    color: #e94560;
+    margin-bottom: 6px;
+  }
+
+  .modal .final-score {
+    font-size: 2.4rem;
+    font-weight: bold;
+    color: #fff;
+    margin: 10px 0;
+  }
+
+  .modal label {
+    display: block;
+    margin: 16px 0 6px;
+    font-size: 0.9rem;
+    color: #aaa;
+    text-align: left;
+  }
+
+  .modal input[type="text"] {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 2px solid #0f3460;
+    background: #0f0f1a;
+    color: #fff;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal input[type="text"]:focus { border-color: #e94560; }
+
+  .modal .btn { margin-top: 12px; }
+
+  /* ── 리더보드 ── */
+  .leaderboard-title {
+    font-size: 1.6rem;
+    color: #e94560;
+    margin-bottom: 14px;
+    letter-spacing: 2px;
+  }
+
+  #lb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  #lb-table th {
+    color: #e94560;
+    border-bottom: 1px solid #e9456055;
+    padding: 6px 10px;
+    text-align: left;
+  }
+  #lb-table td {
+    padding: 7px 10px;
+    border-bottom: 1px solid #0f346022;
+    color: #ddd;
+  }
+  #lb-table tr:nth-child(even) td { background: #0f0f1a22; }
+
+  .rank-gold   { color: #ffd700; font-weight: bold; }
+  .rank-silver { color: #c0c0c0; font-weight: bold; }
+  .rank-bronze { color: #cd7f32; font-weight: bold; }
+
+  .lb-row-new td { background: #e9456020 !important; }
+
+  .modal-btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .modal-btn-row .btn { flex: 1; }
+</style>
+</head>
+<body>
+
+<div class="wrapper">
+
+  <!-- 왼쪽: 게임 -->
+  <div class="game-panel">
+    <h1>TETRIS</h1>
+    <canvas id="game-canvas" width="300" height="600"></canvas>
+  </div>
+
+  <!-- 오른쪽: 정보 -->
+  <div class="side-panel">
+    <div class="info-box">
+      <h3>점수</h3>
+      <div class="val" id="score-display">0</div>
+    </div>
+    <div class="info-box">
+      <h3>레벨</h3>
+      <div class="val" id="level-display">1</div>
+    </div>
+    <div class="info-box">
+      <h3>줄 수</h3>
+      <div class="val" id="lines-display">0</div>
+    </div>
+    <div class="info-box">
+      <h3>다음 블록</h3>
+      <canvas id="next-canvas" width="120" height="120"></canvas>
+    </div>
+    <button class="btn btn-primary" id="start-btn" onclick="startGame()">게임 시작</button>
+    <button class="btn btn-secondary" onclick="showLeaderboard()">리더보드</button>
+    <div class="controls-hint">
+      <b>←→</b> 이동<br>
+      <b>↑</b> 회전<br>
+      <b>↓</b> 소프트 드롭<br>
+      <b>Space</b> 하드 드롭<br>
+      <b>P</b> 일시정지
+    </div>
+  </div>
+</div>
+
+<!-- 게임 오버 모달 -->
+<div class="overlay hidden" id="gameover-overlay">
+  <div class="modal">
+    <h2>GAME OVER</h2>
+    <p style="color:#aaa; font-size:0.9rem;">최종 점수</p>
+    <div class="final-score" id="final-score">0</div>
+    <label for="nickname-input">닉네임을 입력하세요</label>
+    <input type="text" id="nickname-input" maxlength="12" placeholder="닉네임 (최대 12자)">
+    <button class="btn btn-primary" onclick="saveScore()">기록 저장</button>
+    <button class="btn btn-secondary" style="margin-top:8px;" onclick="skipSave()">저장 안 함</button>
+  </div>
+</div>
+
+<!-- 리더보드 모달 -->
+<div class="overlay hidden" id="lb-overlay">
+  <div class="modal">
+    <div class="leaderboard-title">LEADERBOARD</div>
+    <table id="lb-table">
+      <thead>
+        <tr><th>#</th><th>닉네임</th><th>점수</th><th>레벨</th><th>날짜</th></tr>
+      </thead>
+      <tbody id="lb-body"></tbody>
+    </table>
+    <div class="modal-btn-row">
+      <button class="btn btn-primary" onclick="closeLB()">닫기</button>
+      <button class="btn btn-secondary" onclick="clearLeaderboard()">초기화</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+//  상수 & 설정
+// ──────────────────────────────────────────────
+const COLS = 10, ROWS = 20, CELL = 30;
+const COLORS = [
+  null,
+  '#00f0f0', // I - 청록
+  '#f0f000', // O - 노랑
+  '#a000f0', // T - 보라
+  '#00f000', // S - 초록
+  '#f00000', // Z - 빨강
+  '#0000f0', // J - 파랑
+  '#f0a000', // L - 주황
+];
+
+const PIECES = [
+  null,
+  [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]], // I
+  [[2,2],[2,2]],                               // O
+  [[0,3,0],[3,3,3],[0,0,0]],                   // T
+  [[0,4,4],[4,4,0],[0,0,0]],                   // S
+  [[5,5,0],[0,5,5],[0,0,0]],                   // Z
+  [[6,0,0],[6,6,6],[0,0,0]],                   // J
+  [[0,0,7],[7,7,7],[0,0,0]],                   // L
+];
+
+const LINE_SCORES = [0, 100, 300, 500, 800];
+
+// ──────────────────────────────────────────────
+//  캔버스
+// ──────────────────────────────────────────────
+const canvas  = document.getElementById('game-canvas');
+const ctx     = canvas.getContext('2d');
+const nCanvas = document.getElementById('next-canvas');
+const nCtx    = nCanvas.getContext('2d');
+
+// ──────────────────────────────────────────────
+//  게임 상태
+// ──────────────────────────────────────────────
+let board, piece, next, score, level, lines, gameRunning, paused, animId, dropTimer, dropInterval;
+
+function initState() {
+  board = Array.from({length: ROWS}, () => new Array(COLS).fill(0));
+  score = 0; level = 1; lines = 0;
+  gameRunning = false; paused = false;
+  updateHUD();
+}
+initState();
+
+// ──────────────────────────────────────────────
+//  조각 생성 / 조작
+// ──────────────────────────────────────────────
+function randomPiece() {
+  const id = Math.floor(Math.random() * 7) + 1;
+  const matrix = PIECES[id].map(r => [...r]);
+  return { id, matrix, x: Math.floor(COLS / 2) - Math.floor(matrix[0].length / 2), y: 0 };
+}
+
+function rotate(matrix) {
+  const n = matrix.length, m = matrix[0].length;
+  const out = Array.from({length: m}, () => new Array(n).fill(0));
+  for (let r = 0; r < n; r++)
+    for (let c = 0; c < m; c++)
+      out[c][n - 1 - r] = matrix[r][c];
+  return out;
+}
+
+function isValid(p, dx=0, dy=0, mat=null) {
+  const m = mat || p.matrix;
+  for (let r = 0; r < m.length; r++)
+    for (let c = 0; c < m[r].length; c++) {
+      if (!m[r][c]) continue;
+      const nx = p.x + c + dx, ny = p.y + r + dy;
+      if (nx < 0 || nx >= COLS || ny >= ROWS) return false;
+      if (ny >= 0 && board[ny][nx]) return false;
+    }
+  return true;
+}
+
+// ──────────────────────────────────────────────
+//  게임 로직
+// ──────────────────────────────────────────────
+function startGame() {
+  cancelAnimationFrame(animId);
+  clearInterval(dropTimer);
+  initState();
+  document.getElementById('gameover-overlay').classList.add('hidden');
+  document.getElementById('lb-overlay').classList.add('hidden');
+  piece = randomPiece();
+  next  = randomPiece();
+  gameRunning = true;
+  paused = false;
+  document.getElementById('start-btn').textContent = '다시 시작';
+  setDropInterval();
+  gameLoop();
+}
+
+function setDropInterval() {
+  clearInterval(dropTimer);
+  dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+  dropTimer = setInterval(softDrop, dropInterval);
+}
+
+function softDrop() {
+  if (!gameRunning || paused) return;
+  if (isValid(piece, 0, 1)) {
+    piece.y++;
+  } else {
+    lockPiece();
+  }
+}
+
+function lockPiece() {
+  piece.matrix.forEach((row, r) =>
+    row.forEach((val, c) => {
+      if (val) board[piece.y + r][piece.x + c] = val;
+    })
+  );
+  clearLines();
+  piece = next;
+  next  = randomPiece();
+  drawNext();
+  if (!isValid(piece)) {
+    gameOver();
+  }
+}
+
+function clearLines() {
+  let cleared = 0;
+  for (let r = ROWS - 1; r >= 0; r--) {
+    if (board[r].every(v => v)) {
+      board.splice(r, 1);
+      board.unshift(new Array(COLS).fill(0));
+      cleared++;
+      r++;
+    }
+  }
+  if (cleared) {
+    lines += cleared;
+    score += LINE_SCORES[cleared] * level;
+    level = Math.floor(lines / 10) + 1;
+    setDropInterval();
+    updateHUD();
+  }
+}
+
+function gameOver() {
+  gameRunning = false;
+  clearInterval(dropTimer);
+  cancelAnimationFrame(animId);
+  document.getElementById('final-score').textContent = score.toLocaleString();
+  document.getElementById('nickname-input').value = '';
+  document.getElementById('gameover-overlay').classList.remove('hidden');
+}
+
+// ──────────────────────────────────────────────
+//  렌더링
+// ──────────────────────────────────────────────
+function gameLoop() {
+  draw();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+function draw() {
+  ctx.fillStyle = '#0f0f1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  drawGrid();
+  drawBoard();
+  drawGhost();
+  drawPiece(piece, ctx, piece.x * CELL, piece.y * CELL, CELL);
+}
+
+function drawGrid() {
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 0.5;
+  for (let r = 0; r <= ROWS; r++) {
+    ctx.beginPath();
+    ctx.moveTo(0, r * CELL);
+    ctx.lineTo(canvas.width, r * CELL);
+    ctx.stroke();
+  }
+  for (let c = 0; c <= COLS; c++) {
+    ctx.beginPath();
+    ctx.moveTo(c * CELL, 0);
+    ctx.lineTo(c * CELL, canvas.height);
+    ctx.stroke();
+  }
+}
+
+function drawBoard() {
+  for (let r = 0; r < ROWS; r++)
+    for (let c = 0; c < COLS; c++)
+      if (board[r][c])
+        drawCell(ctx, c * CELL, r * CELL, CELL, COLORS[board[r][c]]);
+}
+
+function drawGhost() {
+  let dy = 0;
+  while (isValid(piece, 0, dy + 1)) dy++;
+  if (dy === 0) return;
+  piece.matrix.forEach((row, r) =>
+    row.forEach((val, c) => {
+      if (!val) return;
+      drawCellGhost(ctx, (piece.x + c) * CELL, (piece.y + r + dy) * CELL, CELL, COLORS[val]);
+    })
+  );
+}
+
+function drawPiece(p, context, ox, oy, size) {
+  p.matrix.forEach((row, r) =>
+    row.forEach((val, c) => {
+      if (val) drawCell(context, ox + c * size, oy + r * size, size, COLORS[val]);
+    })
+  );
+}
+
+function drawCell(context, x, y, size, color) {
+  context.fillStyle = color;
+  context.fillRect(x + 1, y + 1, size - 2, size - 2);
+  context.fillStyle = 'rgba(255,255,255,0.25)';
+  context.fillRect(x + 1, y + 1, size - 2, 4);
+  context.fillStyle = 'rgba(0,0,0,0.25)';
+  context.fillRect(x + 1, y + size - 5, size - 2, 4);
+}
+
+function drawCellGhost(context, x, y, size, color) {
+  context.strokeStyle = color;
+  context.globalAlpha = 0.3;
+  context.lineWidth = 1.5;
+  context.strokeRect(x + 2, y + 2, size - 4, size - 4);
+  context.globalAlpha = 1;
+}
+
+function drawNext() {
+  const size = 28;
+  nCtx.fillStyle = '#0f0f1a';
+  nCtx.fillRect(0, 0, nCanvas.width, nCanvas.height);
+  const m = next.matrix;
+  const ox = Math.floor((nCanvas.width  - m[0].length * size) / 2);
+  const oy = Math.floor((nCanvas.height - m.length    * size) / 2);
+  m.forEach((row, r) =>
+    row.forEach((val, c) => {
+      if (val) drawCell(nCtx, ox + c * size, oy + r * size, size, COLORS[val]);
+    })
+  );
+}
+
+function updateHUD() {
+  document.getElementById('score-display').textContent = score.toLocaleString();
+  document.getElementById('level-display').textContent = level;
+  document.getElementById('lines-display').textContent = lines;
+}
+
+// ──────────────────────────────────────────────
+//  키보드 입력
+// ──────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (!gameRunning || paused) {
+    if (e.key === 'p' || e.key === 'P') togglePause();
+    return;
+  }
+  switch (e.key) {
+    case 'ArrowLeft':
+      if (isValid(piece, -1)) piece.x--;
+      break;
+    case 'ArrowRight':
+      if (isValid(piece, 1)) piece.x++;
+      break;
+    case 'ArrowDown':
+      if (isValid(piece, 0, 1)) piece.y++;
+      else lockPiece();
+      break;
+    case 'ArrowUp': {
+      const rotated = rotate(piece.matrix);
+      if (isValid(piece, 0, 0, rotated)) piece.matrix = rotated;
+      else if (isValid(piece, 1, 0, rotated)) { piece.matrix = rotated; piece.x++; }
+      else if (isValid(piece, -1, 0, rotated)) { piece.matrix = rotated; piece.x--; }
+      break;
+    }
+    case ' ':
+      e.preventDefault();
+      while (isValid(piece, 0, 1)) piece.y++;
+      lockPiece();
+      break;
+    case 'p':
+    case 'P':
+      togglePause();
+      break;
+  }
+});
+
+function togglePause() {
+  if (!gameRunning) return;
+  paused = !paused;
+  if (paused) {
+    clearInterval(dropTimer);
+    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = '#e94560';
+    ctx.font = 'bold 36px Arial';
+    ctx.textAlign = 'center';
+    ctx.fillText('PAUSED', canvas.width / 2, canvas.height / 2);
+  } else {
+    setDropInterval();
+  }
+}
+
+// ──────────────────────────────────────────────
+//  리더보드 (localStorage)
+// ──────────────────────────────────────────────
+const LB_KEY = 'tetris_leaderboard';
+
+function getLeaderboard() {
+  try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; }
+  catch { return []; }
+}
+
+function saveScore() {
+  const nick = document.getElementById('nickname-input').value.trim();
+  if (!nick) {
+    document.getElementById('nickname-input').focus();
+    document.getElementById('nickname-input').style.borderColor = '#e94560';
+    return;
+  }
+  const board = getLeaderboard();
+  const entry = { nickname: nick, score, level, lines, date: new Date().toLocaleDateString('ko-KR') };
+  board.push(entry);
+  board.sort((a, b) => b.score - a.score);
+  localStorage.setItem(LB_KEY, JSON.stringify(board.slice(0, 20)));
+  document.getElementById('gameover-overlay').classList.add('hidden');
+  showLeaderboard(entry);
+}
+
+function skipSave() {
+  document.getElementById('gameover-overlay').classList.add('hidden');
+}
+
+let _highlightEntry = null;
+
+function showLeaderboard(highlightEntry = null) {
+  _highlightEntry = highlightEntry;
+  const data = getLeaderboard();
+  const tbody = document.getElementById('lb-body');
+  tbody.innerHTML = '';
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#aaa;padding:20px;">기록이 없습니다.</td></tr>';
+  } else {
+    data.forEach((e, i) => {
+      const tr = document.createElement('tr');
+      const rankClass = i === 0 ? 'rank-gold' : i === 1 ? 'rank-silver' : i === 2 ? 'rank-bronze' : '';
+      const rankStr   = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : i + 1;
+      const isNew = highlightEntry && e.nickname === highlightEntry.nickname && e.score === highlightEntry.score && e.date === highlightEntry.date;
+      if (isNew) tr.classList.add('lb-row-new');
+      tr.innerHTML = `
+        <td class="${rankClass}">${rankStr}</td>
+        <td>${esc(e.nickname)}</td>
+        <td>${e.score.toLocaleString()}</td>
+        <td>${e.level}</td>
+        <td>${e.date}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('lb-overlay').classList.remove('hidden');
+}
+
+function closeLB() {
+  document.getElementById('lb-overlay').classList.add('hidden');
+}
+
+function clearLeaderboard() {
+  if (!confirm('리더보드를 초기화하시겠습니까?')) return;
+  localStorage.removeItem(LB_KEY);
+  showLeaderboard();
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ──────────────────────────────────────────────
+//  오버레이 배경 클릭 닫기
+// ──────────────────────────────────────────────
+document.getElementById('lb-overlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeLB();
+});
+
+// ──────────────────────────────────────────────
+//  초기 화면 그리기
+// ──────────────────────────────────────────────
+(function initialDraw() {
+  ctx.fillStyle = '#0f0f1a';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#e94560';
+  ctx.font = 'bold 28px Arial';
+  ctx.textAlign = 'center';
+  ctx.fillText('게임 시작을 눌러주세요', canvas.width / 2, canvas.height / 2);
+})();
+</script>
+</body>
+</html>

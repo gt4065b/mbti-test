@@ -44,6 +44,21 @@
         margin-top:20px;
     }
     button:hover { background:#3b63d6; }
+    .tetris-link {
+        display:block;
+        text-align:center;
+        margin-top:20px;
+        padding:12px;
+        background:#1a1a2e;
+        color:#e94560;
+        border-radius:8px;
+        text-decoration:none;
+        font-weight:bold;
+        letter-spacing:2px;
+        font-size:1rem;
+        transition:background 0.2s;
+    }
+    .tetris-link:hover { background:#0f0f1a; }
 </style>
 </head>
 
@@ -55,6 +70,7 @@
     <button onclick="calculateMBTI()">결과보기</button>
 
     <div id="result" class="result-box"></div>
+    <a class="tetris-link" href="tetris.html">🎮 TETRIS 게임 하러가기</a>
 </div>
 
 <script>
