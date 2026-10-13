@@ -984,7 +984,7 @@ async function adminPage() {
     </section>
     <section class="card">
       <h3>분야·일정·보상 설정</h3>
-      <p class="muted">분야 목록, 심의 일정, 포인트·포상금 금액은 <code>wos-idea-bank/config.js</code> 파일에서 바꿉니다.</p>
+      <p class="muted">분야 목록, 심의 일정, 포인트·포상금 금액은 <code>config.js</code> 파일에서 바꿉니다.</p>
       <ul class="mylist"><li>분야: ${CONFIG.categories.map(esc).join(', ')}</li><li>심의일: ${CONFIG.reviewDates.map((d) => fmtShort(parseDate(d))).join(', ')} 이후 격주</li><li>제안 포인트: ${CONFIG.pointsPerIdea}P · 채택 포상금: ${CONFIG.prizeAmount ? CONFIG.prizeAmount.toLocaleString() + '원' : '미정'}</li></ul>
     </section>`;
   $('#user-q').oninput = (e) => { const q = e.target.value.toLowerCase(); $$('#users tbody tr').forEach((tr) => { tr.hidden = !tr.dataset.s.includes(q); }); };
