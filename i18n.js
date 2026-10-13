@@ -360,8 +360,8 @@ export const DICT = {
   '사유': { en: 'Reason', zh: '理由' },
 
   // ── 왼쪽 메뉴
-  '메뉴 열기': { en: 'Open menu', zh: '打开菜单' },
-  '메뉴 닫기': { en: 'Close menu', zh: '关闭菜单' },
+  '메뉴 펼치기': { en: 'Expand menu', zh: '展开菜单' },
+  '메뉴 접기': { en: 'Collapse menu', zh: '收起菜单' },
   '아이디어 보기': { en: 'Browse ideas', zh: '浏览创意' },
   '최다 좋아요 아이디어': { en: 'Most liked ideas', zh: '最多点赞创意' },
   '승인 진행 중': { en: 'In progress', zh: '审批进行中' },

@@ -157,11 +157,12 @@ function renderNav() {
   badge.title = t('Firebase 연결 전: 이 브라우저에만 저장됩니다');
   $('.brand').textContent = '💡 ' + t('WOS 아이디어 뱅크');
   document.title = t('WOS 아이디어 뱅크');
-  $('#menu-btn').setAttribute('aria-label', t('메뉴 열기'));
+  $('#menu-btn').setAttribute('aria-label', railExpanded() ? t('메뉴 접기') : t('메뉴 펼치기'));
   renderDrawer();
 }
 
-// ───────────── 왼쪽 슬라이드 메뉴 ─────────────
+// ───────────── 왼쪽 메뉴 (접기·펼치기) ─────────────
+// 접으면 아이콘만 남는 얇은 띠, 펼치면 글자까지 보임. 어느 상태에서도 오른쪽 화면은 그대로 쓸 수 있음
 
 // 메뉴에서 고르는 아이디어 보기: 정렬·상태 묶음
 const VIEWS = {
@@ -173,27 +174,28 @@ const VIEWS = {
 const STATUS_GROUPS = { 'g:progress': ['collecting', 'pending', 'hold'], 'g:approved': ['listed'] };
 const matchStatus = (s, filter) => !filter || (STATUS_GROUPS[filter] ? STATUS_GROUPS[filter].includes(s) : s === filter);
 
+const RAIL_KEY = 'wos-rail';
+const railExpanded = () => document.body.classList.contains('rail-expanded');
+
 function renderDrawer() {
   const h = location.hash || '#/';
-  const link = (href, icon, label) => `<a class="dr-item ${h === href ? 'on' : ''}" href="${href}"><span class="dr-ico">${icon}</span><span class="dr-label">${label}</span></a>`;
+  const item = (attrs, icon, label, extra = '') => `<${attrs.tag} class="dr-item ${attrs.on ? 'on' : ''}" ${attrs.more} title="${esc(label)}" aria-label="${esc(label)}"><span class="dr-ico" aria-hidden="true">${icon}</span><span class="dr-label">${label}</span>${extra}</${attrs.tag}>`;
+  const link = (href, icon, label) => item({ tag: 'a', on: h === href, more: `href="${href}"` }, icon, label);
   const viewBtn = (key) => {
     const v = VIEWS[key];
     const on = (h === '#/' || h === '' || h === '#') && homeState.view === key;
-    return `<button type="button" class="dr-item ${on ? 'on' : ''}" data-view="${key}"><span class="dr-ico">${v.icon}</span><span class="dr-label">${t(v.label)}</span><span class="dr-cnt" data-cnt="${key}"></span></button>`;
+    return item({ tag: 'button', on, more: `type="button" data-view="${key}"` }, v.icon, t(v.label), `<span class="dr-cnt" data-cnt="${key}"></span>`);
   };
+  const expanded = railExpanded();
   $('#drawer').innerHTML = `
+    ${user ? `
     <div class="dr-head">
-      ${user ? `
-        <div class="dr-user">
-          <div class="avatar" aria-hidden="true">${esc((user.name || '?').slice(0, 1))}</div>
-          <div class="dr-who"><b id="drawer-title">${esc(user.name)}</b><small>${esc(user.dept || '')}${user.type ? ` · ${esc(tv(user.type))}` : ''}</small><small>${esc(t(ROLES[user.role] || ''))}</small></div>
-        </div>
-        <a class="dr-points" href="#/me"><span>${t('누적 챌린지 포인트')}</span><b>${(user.points || 0).toLocaleString()}P</b></a>`
-        : `<b id="drawer-title" class="dr-title">💡 ${t('WOS 아이디어 뱅크')}</b>`}
-      <button type="button" class="icon-btn dr-close" aria-label="${t('메뉴 닫기')}">
-        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </button>
-    </div>
+      <a class="dr-user" href="#/me" title="${esc(user.name)}">
+        <span class="avatar" aria-hidden="true">${esc((user.name || '?').slice(0, 1))}</span>
+        <span class="dr-who"><b>${esc(user.name)}</b><small>${esc(user.dept || '')}${user.type ? ` · ${esc(tv(user.type))}` : ''}</small><small>${esc(t(ROLES[user.role] || ''))}</small></span>
+      </a>
+      <a class="dr-points" href="#/me"><span>${t('누적 챌린지 포인트')}</span><b>${(user.points || 0).toLocaleString()}P</b></a>
+    </div>` : ''}
     <div class="dr-body">
       ${user ? `
       <div class="dr-sec">
@@ -211,19 +213,23 @@ function renderDrawer() {
       <div class="dr-sec">
         <div class="dr-sec-title">${t('설정')}</div>
         ${user ? link('#/profile', '👤', t('내 정보 수정')) : ''}
+        ${item({ tag: 'button', more: 'type="button" id="lang-mini"' }, '🌐', `${t('언어')}: ${LANGS[lang]}`)}
         <div class="dr-lang" role="group" aria-label="${t('언어')}">
-          <span class="dr-ico">🌐</span>
           <div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button type="button" data-lang="${k}" class="${k === lang ? 'on' : ''}" aria-pressed="${k === lang}">${v}</button>`).join('')}</div>
         </div>
       </div>
     </div>
-    ${user ? `<div class="dr-foot"><button type="button" class="dr-item" id="logout"><span class="dr-ico">↩</span><span class="dr-label">${t('로그아웃')}</span></button></div>` : ''}`;
+    <div class="dr-foot">
+      ${user ? item({ tag: 'button', more: 'type="button" id="logout"' }, '↩', t('로그아웃')) : ''}
+      ${item({ tag: 'button', more: `type="button" id="rail-toggle" aria-expanded="${expanded}"` }, expanded ? '«' : '»', expanded ? t('메뉴 접기') : t('메뉴 펼치기'))}
+    </div>`;
 
   $$('#drawer [data-view]').forEach((b) => b.onclick = () => applyView(b.dataset.view));
   $$('#drawer [data-lang]').forEach((b) => b.onclick = () => { setLang(b.dataset.lang); render(); });
-  $('#drawer .dr-close').onclick = () => toggleDrawer(false);
-  $$('#drawer a.dr-item, #drawer .dr-points').forEach((a) => a.addEventListener('click', () => toggleDrawer(false)));
-  if ($('#drawer').classList.contains('open')) fillDrawerCounts();
+  // 접힌 상태의 🌐: 메뉴를 펼쳐 언어 버튼을 보여 줌
+  $('#lang-mini').onclick = () => setRail(true);
+  $('#rail-toggle').onclick = () => setRail(!railExpanded());
+  if (expanded) fillDrawerCounts();
 }
 
 // 메뉴의 보기 버튼 옆 건수
@@ -240,41 +246,23 @@ async function fillDrawerCounts() {
 function applyView(key) {
   const v = VIEWS[key];
   Object.assign(homeState, { view: key, sort: v.sort, status: v.status, cat: '', q: '', scrollToList: true });
-  toggleDrawer(false);
   if ((location.hash || '#/') === '#/') render(); else location.hash = '#/';
 }
 
-function toggleDrawer(open) {
-  const d = $('#drawer');
-  const btn = $('#menu-btn');
-  if (open === d.classList.contains('open')) return;
-  d.classList.toggle('open', open);
-  $('#scrim').classList.toggle('show', open);
-  document.body.classList.toggle('drawer-open', open);
-  d.setAttribute('aria-hidden', String(!open));
-  btn.setAttribute('aria-expanded', String(open));
-  d.style.transform = '';
-  if (open) { fillDrawerCounts(); setTimeout(() => $('.dr-close', d)?.focus(), 50); } else btn.focus({ preventScroll: true });
+function setRail(expanded, remember = true) {
+  document.body.classList.toggle('rail-expanded', expanded);
+  $('#menu-btn').setAttribute('aria-expanded', String(expanded));
+  $('#menu-btn').setAttribute('aria-label', expanded ? t('메뉴 접기') : t('메뉴 펼치기'));
+  if (remember) { try { localStorage.setItem(RAIL_KEY, expanded ? '1' : '0'); } catch { /* 저장소 사용 불가 */ } }
+  renderDrawer();
 }
 
 function bindDrawer() {
-  const d = $('#drawer');
-  $('#menu-btn').onclick = () => toggleDrawer(true);
-  $('#scrim').onclick = () => toggleDrawer(false);
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleDrawer(false); });
-  // 왼쪽으로 밀어서 닫기
-  let x0 = null; let dx = 0;
-  d.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; dx = 0; d.style.transition = 'none'; }, { passive: true });
-  d.addEventListener('touchmove', (e) => {
-    if (x0 === null) return;
-    dx = Math.min(0, e.touches[0].clientX - x0);
-    d.style.transform = `translateX(${dx}px)`;
-  }, { passive: true });
-  d.addEventListener('touchend', () => {
-    d.style.transition = '';
-    if (dx < -70) toggleDrawer(false); else d.style.transform = '';
-    x0 = null;
-  });
+  // 처음 방문: 넓은 화면은 펼치고, 휴대폰은 접어 둠. 이후에는 마지막 상태를 기억
+  let saved = null;
+  try { saved = localStorage.getItem(RAIL_KEY); } catch { /* 저장소 사용 불가 */ }
+  setRail(saved === null ? window.innerWidth >= 900 : saved === '1', false);
+  $('#menu-btn').onclick = () => setRail(!railExpanded());
 }
 
 const routes = [
@@ -1137,9 +1125,9 @@ async function adminPage() {
 (async function start() {
   store = await createStore();
   document.addEventListener('click', (e) => {
-    if (e.target.closest('#logout')) { toggleDrawer(false); store.signOut(); }
+    if (e.target.closest('#logout')) store.signOut();
   });
   bindDrawer();
-  window.addEventListener('hashchange', () => { toggleDrawer(false); render(); });
+  window.addEventListener('hashchange', render);
   store.onAuth((u) => { user = u; render(); });
 })();
