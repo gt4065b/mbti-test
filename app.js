@@ -151,18 +151,130 @@ function renderNav() {
     isStaff() ? tab('#/review', '⚖️', t('심의')) : '',
     user?.role === 'admin' ? tab('#/admin', '⚙️', t('관리')) : '',
   ].join('');
-  $('#userbox').innerHTML = user
-    ? `<span class="who">${esc(user.name)}<small>${esc(t(ROLES[user.role] || ''))}</small></span><button class="btn ghost sm" id="logout">${t('로그아웃')}</button>`
-    : '';
   const badge = $('#modebadge');
   badge.hidden = store.mode !== 'demo';
   badge.textContent = t('체험 모드');
   badge.title = t('Firebase 연결 전: 이 브라우저에만 저장됩니다');
   $('.brand').textContent = '💡 ' + t('WOS 아이디어 뱅크');
   document.title = t('WOS 아이디어 뱅크');
-  const ls = $('#lang');
-  ls.innerHTML = Object.entries(LANGS).map(([k, v]) => `<option value="${k}" ${k === lang ? 'selected' : ''}>${v}</option>`).join('');
-  ls.setAttribute('aria-label', t('언어'));
+  $('#menu-btn').setAttribute('aria-label', t('메뉴 열기'));
+  renderDrawer();
+}
+
+// ───────────── 왼쪽 슬라이드 메뉴 ─────────────
+
+// 메뉴에서 고르는 아이디어 보기: 정렬·상태 묶음
+const VIEWS = {
+  top: { icon: '🔥', label: '최다 좋아요 아이디어', sort: 'likes', status: '' },
+  progress: { icon: '⏳', label: '승인 진행 중', sort: 'new', status: 'g:progress' },
+  approved: { icon: '✅', label: '승인 완료 (정규 WOS)', sort: 'likes', status: 'g:approved' },
+  all: { icon: '📚', label: '전체 아이디어', sort: 'new', status: '' },
+};
+const STATUS_GROUPS = { 'g:progress': ['collecting', 'pending', 'hold'], 'g:approved': ['listed'] };
+const matchStatus = (s, filter) => !filter || (STATUS_GROUPS[filter] ? STATUS_GROUPS[filter].includes(s) : s === filter);
+
+function renderDrawer() {
+  const h = location.hash || '#/';
+  const link = (href, icon, label) => `<a class="dr-item ${h === href ? 'on' : ''}" href="${href}"><span class="dr-ico">${icon}</span><span class="dr-label">${label}</span></a>`;
+  const viewBtn = (key) => {
+    const v = VIEWS[key];
+    const on = (h === '#/' || h === '' || h === '#') && homeState.view === key;
+    return `<button type="button" class="dr-item ${on ? 'on' : ''}" data-view="${key}"><span class="dr-ico">${v.icon}</span><span class="dr-label">${t(v.label)}</span><span class="dr-cnt" data-cnt="${key}"></span></button>`;
+  };
+  $('#drawer').innerHTML = `
+    <div class="dr-head">
+      ${user ? `
+        <div class="dr-user">
+          <div class="avatar" aria-hidden="true">${esc((user.name || '?').slice(0, 1))}</div>
+          <div class="dr-who"><b id="drawer-title">${esc(user.name)}</b><small>${esc(user.dept || '')}${user.type ? ` · ${esc(tv(user.type))}` : ''}</small><small>${esc(t(ROLES[user.role] || ''))}</small></div>
+        </div>
+        <a class="dr-points" href="#/me"><span>${t('누적 챌린지 포인트')}</span><b>${(user.points || 0).toLocaleString()}P</b></a>`
+        : `<b id="drawer-title" class="dr-title">💡 ${t('WOS 아이디어 뱅크')}</b>`}
+      <button type="button" class="icon-btn dr-close" aria-label="${t('메뉴 닫기')}">
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <div class="dr-body">
+      ${user ? `
+      <div class="dr-sec">
+        <div class="dr-sec-title">${t('아이디어 보기')}</div>
+        ${viewBtn('top')}${viewBtn('progress')}${viewBtn('approved')}${viewBtn('all')}
+        ${link('#/wos', '📋', t('정규 WOS 리스트'))}
+      </div>
+      <div class="dr-sec">
+        <div class="dr-sec-title">${t('바로가기')}</div>
+        ${link('#/new', '➕', t('아이디어 등록'))}
+        ${link('#/me', '🙋', t('내 활동'))}
+        ${isStaff() ? link('#/review', '⚖️', t('심의')) : ''}
+        ${user.role === 'admin' ? link('#/admin', '⚙️', t('관리')) : ''}
+      </div>` : ''}
+      <div class="dr-sec">
+        <div class="dr-sec-title">${t('설정')}</div>
+        ${user ? link('#/profile', '👤', t('내 정보 수정')) : ''}
+        <div class="dr-lang" role="group" aria-label="${t('언어')}">
+          <span class="dr-ico">🌐</span>
+          <div class="seg">${Object.entries(LANGS).map(([k, v]) => `<button type="button" data-lang="${k}" class="${k === lang ? 'on' : ''}" aria-pressed="${k === lang}">${v}</button>`).join('')}</div>
+        </div>
+      </div>
+    </div>
+    ${user ? `<div class="dr-foot"><button type="button" class="dr-item" id="logout"><span class="dr-ico">↩</span><span class="dr-label">${t('로그아웃')}</span></button></div>` : ''}`;
+
+  $$('#drawer [data-view]').forEach((b) => b.onclick = () => applyView(b.dataset.view));
+  $$('#drawer [data-lang]').forEach((b) => b.onclick = () => { setLang(b.dataset.lang); render(); });
+  $('#drawer .dr-close').onclick = () => toggleDrawer(false);
+  $$('#drawer a.dr-item, #drawer .dr-points').forEach((a) => a.addEventListener('click', () => toggleDrawer(false)));
+  if ($('#drawer').classList.contains('open')) fillDrawerCounts();
+}
+
+// 메뉴의 보기 버튼 옆 건수
+async function fillDrawerCounts() {
+  if (!user) return;
+  try {
+    const ideas = visibleIdeas(await store.list('ideas')).filter((i) => i.status !== 'merged');
+    const n = { top: ideas.filter((i) => (i.likeCount || 0) > 0).length, all: ideas.length };
+    for (const k of ['progress', 'approved']) n[k] = ideas.filter((i) => matchStatus(i.status, VIEWS[k].status)).length;
+    for (const [k, v] of Object.entries(n)) { const el = $(`#drawer [data-cnt="${k}"]`); if (el) el.textContent = v; }
+  } catch (e) { console.warn(e); }
+}
+
+function applyView(key) {
+  const v = VIEWS[key];
+  Object.assign(homeState, { view: key, sort: v.sort, status: v.status, cat: '', q: '', scrollToList: true });
+  toggleDrawer(false);
+  if ((location.hash || '#/') === '#/') render(); else location.hash = '#/';
+}
+
+function toggleDrawer(open) {
+  const d = $('#drawer');
+  const btn = $('#menu-btn');
+  if (open === d.classList.contains('open')) return;
+  d.classList.toggle('open', open);
+  $('#scrim').classList.toggle('show', open);
+  document.body.classList.toggle('drawer-open', open);
+  d.setAttribute('aria-hidden', String(!open));
+  btn.setAttribute('aria-expanded', String(open));
+  d.style.transform = '';
+  if (open) { fillDrawerCounts(); setTimeout(() => $('.dr-close', d)?.focus(), 50); } else btn.focus({ preventScroll: true });
+}
+
+function bindDrawer() {
+  const d = $('#drawer');
+  $('#menu-btn').onclick = () => toggleDrawer(true);
+  $('#scrim').onclick = () => toggleDrawer(false);
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleDrawer(false); });
+  // 왼쪽으로 밀어서 닫기
+  let x0 = null; let dx = 0;
+  d.addEventListener('touchstart', (e) => { x0 = e.touches[0].clientX; dx = 0; d.style.transition = 'none'; }, { passive: true });
+  d.addEventListener('touchmove', (e) => {
+    if (x0 === null) return;
+    dx = Math.min(0, e.touches[0].clientX - x0);
+    d.style.transform = `translateX(${dx}px)`;
+  }, { passive: true });
+  d.addEventListener('touchend', () => {
+    d.style.transition = '';
+    if (dx < -70) toggleDrawer(false); else d.style.transform = '';
+    x0 = null;
+  });
 }
 
 const routes = [
@@ -174,6 +286,7 @@ const routes = [
   [/^#\/me$/, mePage],
   [/^#\/review$/, reviewPage],
   [/^#\/admin$/, adminPage],
+  [/^#\/profile$/, () => profilePage(false)],
 ];
 
 async function render() {
@@ -256,7 +369,7 @@ function profilePage(first) {
 
 // ───────────── 홈 ─────────────
 
-const homeState = { sort: 'new', cat: '', status: '', q: '' };
+const homeState = { view: 'all', sort: 'new', cat: '', status: '', q: '', scrollToList: false };
 
 function ideaCard(i) {
   return `
@@ -295,8 +408,9 @@ async function homePage() {
         <input id="q" type="search" placeholder="${t('검색 (제목·내용)')}" value="${esc(homeState.q)}">
         <select id="sort"><option value="new">${t('최신순')}</option><option value="likes">${t('좋아요순')}</option><option value="comments">${t('댓글순')}</option></select>
         <select id="cat"><option value="">${t('전체 분야')}</option>${CONFIG.categories.map((c) => `<option value="${esc(c)}">${esc(tv(c))}</option>`).join('')}</select>
-        <select id="status"><option value="">${t('전체 상태')}</option>${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('')}</select>
+        <select id="status"><option value="">${t('전체 상태')}</option><option value="g:progress">${t('승인 진행 중')}</option><option value="g:approved">${t('승인 완료 (정규 WOS)')}</option>${Object.entries(STATUS).map(([k, v]) => `<option value="${k}">${t(v)}</option>`).join('')}</select>
       </div>
+      <h2 class="sec" id="list-title"></h2>
       <div id="list"></div>
     </section>`;
   $('#sort').value = homeState.sort;
@@ -306,7 +420,7 @@ async function homePage() {
   const draw = () => {
     const q = homeState.q.trim().toLowerCase();
     let list = ideas.filter((i) => (!homeState.cat || i.category === homeState.cat)
-      && (!homeState.status || i.status === homeState.status)
+      && matchStatus(i.status, homeState.status)
       && (!q || `${i.title} ${i.asis} ${i.tobe}`.toLowerCase().includes(q)));
     const sorters = {
       new: (a, b) => b.createdAt - a.createdAt,
@@ -314,11 +428,17 @@ async function homePage() {
       comments: (a, b) => (b.commentCount || 0) - (a.commentCount || 0) || b.createdAt - a.createdAt,
     };
     list = list.sort(sorters[homeState.sort]);
+    const title = homeState.status === 'g:progress' ? `⏳ ${t('승인 진행 중')}`
+      : homeState.status === 'g:approved' ? `✅ ${t('승인 완료 (정규 WOS)')}`
+      : homeState.status ? t(STATUS[homeState.status])
+      : homeState.sort === 'likes' ? `🔥 ${t('최다 좋아요 아이디어')}` : `📚 ${t('전체 아이디어')}`;
+    $('#list-title').textContent = `${title} · ${t('{n}건', { n: list.length })}`;
     $('#list').innerHTML = list.length ? list.map(ideaCard).join('') : `<div class="empty">${t('조건에 맞는 아이디어가 없습니다.')}<br><a href="#/new">${t('첫 아이디어를 올려 보세요 →')}</a></div>`;
   };
-  for (const k of ['sort', 'cat', 'status']) $('#' + k).onchange = (e) => { homeState[k] = e.target.value; draw(); };
+  for (const k of ['sort', 'cat', 'status']) $('#' + k).onchange = (e) => { homeState[k] = e.target.value; homeState.view = ''; draw(); renderDrawer(); };
   $('#q').oninput = (e) => { homeState.q = e.target.value; draw(); };
   draw();
+  if (homeState.scrollToList) { homeState.scrollToList = false; $('#list-title').scrollIntoView({ block: 'start', behavior: 'smooth' }); }
 }
 
 // ───────────── 아이디어 상세 ─────────────
@@ -1017,9 +1137,9 @@ async function adminPage() {
 (async function start() {
   store = await createStore();
   document.addEventListener('click', (e) => {
-    if (e.target.id === 'logout') store.signOut();
+    if (e.target.closest('#logout')) { toggleDrawer(false); store.signOut(); }
   });
-  $('#lang').onchange = (e) => { setLang(e.target.value); render(); };
-  window.addEventListener('hashchange', render);
+  bindDrawer();
+  window.addEventListener('hashchange', () => { toggleDrawer(false); render(); });
   store.onAuth((u) => { user = u; render(); });
 })();

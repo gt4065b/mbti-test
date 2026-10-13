@@ -13,11 +13,14 @@
 </head>
 <body>
   <header class="topbar">
+    <button id="menu-btn" class="icon-btn" type="button" aria-controls="drawer" aria-expanded="false" aria-label="메뉴">
+      <svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
     <a href="#/" class="brand">💡 WOS 아이디어 뱅크</a>
     <span id="modebadge" class="mode" hidden title="Firebase 연결 전: 이 브라우저에만 저장됩니다">체험 모드</span>
-    <select id="lang" class="lang"></select>
-    <div id="userbox" class="userbox"></div>
   </header>
+  <div id="scrim" class="scrim"></div>
+  <aside id="drawer" class="drawer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="drawer-title"></aside>
   <main id="main" class="wrap"><div class="loading">불러오는 중…</div></main>
   <nav id="nav" class="nav"></nav>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
