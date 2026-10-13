@@ -1,0 +1,129 @@
+rules_version = '2';
+
+// WOS 아이디어 뱅크 Firestore 보안 규칙
+// - 학교 계정(@wsu.ac.kr)만 읽고 쓸 수 있음
+// - 좋아요는 1인 1회 (문서 번호 = 사용자 번호)
+// - 익명 제안자의 실제 정보(ideaOwners)는 본인과 운영자만 읽을 수 있음
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.matches('.*@wsu[.]ac[.]kr$');
+    }
+    function userDoc(uid) { return /databases/$(database)/documents/users/$(uid); }
+    function ownerDoc(id) { return /databases/$(database)/documents/ideaOwners/$(id); }
+    function ideaDoc(id) { return /databases/$(database)/documents/ideas/$(id); }
+    function hasRole(roles) {
+      return signedIn() && exists(userDoc(request.auth.uid)) && get(userDoc(request.auth.uid)).data.role in roles;
+    }
+    function isStaff() { return hasRole(['operator', 'committee', 'admin']); }
+    function isOperator() { return hasRole(['operator', 'admin']); }
+    function isAdmin() { return hasRole(['admin']); }
+    function ownsIdea(id) {
+      return signedIn() && exists(ownerDoc(id)) && get(ownerDoc(id)).data.uid == request.auth.uid;
+    }
+    function onlyChanged(keys) {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(keys);
+    }
+
+    match /users/{uid} {
+      allow read: if signedIn();
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'member' && request.resource.data.points == 0;
+      allow update: if (signedIn() && request.auth.uid == uid && onlyChanged(['name', 'dept', 'type', 'updatedAt']))
+        || (isOperator() && onlyChanged(['points']))
+        || isAdmin();
+    }
+
+    match /ideaOwners/{id} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isOperator());
+      allow create: if signedIn() && request.resource.data.uid == request.auth.uid && !exists(ideaDoc(id));
+      allow delete: if isOperator() || (signedIn() && resource.data.uid == request.auth.uid && !existsAfter(ideaDoc(id)));
+    }
+
+    match /ideas/{id} {
+      allow read: if signedIn();
+
+      allow create: if signedIn()
+        && existsAfter(ownerDoc(id)) && getAfter(ownerDoc(id)).data.uid == request.auth.uid
+        && request.resource.data.status == 'collecting'
+        && request.resource.data.likeCount == 0 && request.resource.data.commentCount == 0
+        && request.resource.data.hidden == false
+        && request.resource.data.title is string && request.resource.data.title.size() <= 40
+        && ((request.resource.data.anonymous == true && request.resource.data.ownerUid == null && request.resource.data.authorName == '익명 제안자')
+          || (request.resource.data.anonymous == false && request.resource.data.ownerUid == request.auth.uid));
+
+      allow update: if isOperator()
+        // 제안자: 심의 전(의견 수렴) 또는 보류 상태에서만 내용 수정. 보류 → 보완 시 심의 대기로 재상정
+        || (ownsIdea(id) && resource.data.status in ['collecting', 'hold']
+          && onlyChanged(['title', 'asis', 'tobe', 'category', 'samples', 'targets', 'freqUnit', 'freqCount',
+                          'minutes', 'reusable', 'coProposers', 'attachments', 'updatedAt', 'status', 'resubmitted'])
+          && request.resource.data.title.size() <= 40
+          && (request.resource.data.status == resource.data.status
+            || (resource.data.status == 'hold' && request.resource.data.status == 'pending')))
+        // 좋아요 수: 본인 좋아요 문서를 함께 만들거나 지울 때만 ±1
+        || (signedIn() && onlyChanged(['likeCount'])
+          && ((request.resource.data.likeCount == resource.data.likeCount + 1
+                && existsAfter(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid))
+                && !exists(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid)))
+            || (request.resource.data.likeCount == resource.data.likeCount - 1
+                && !existsAfter(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid))
+                && exists(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid)))))
+        // 댓글 수: +1만
+        || (signedIn() && onlyChanged(['commentCount'])
+          && request.resource.data.commentCount == resource.data.commentCount + 1);
+
+      allow delete: if isOperator() || (ownsIdea(id) && resource.data.status == 'collecting');
+
+      match /likes/{uid} {
+        allow read: if signedIn();
+        allow create: if (signedIn() && uid == request.auth.uid && request.resource.data.uid == uid
+            && getAfter(ideaDoc(id)).data.likeCount == get(ideaDoc(id)).data.likeCount + 1)
+          || isOperator();
+        allow delete: if (signedIn() && uid == request.auth.uid
+            && (!existsAfter(ideaDoc(id)) || getAfter(ideaDoc(id)).data.likeCount == get(ideaDoc(id)).data.likeCount - 1))
+          || (ownsIdea(id) && !existsAfter(ideaDoc(id)))   // 제안자가 아이디어를 지울 때
+          || isOperator();
+      }
+
+      match /comments/{cid} {
+        allow read: if signedIn();
+        allow create: if isOperator()
+          || (signedIn() && request.resource.data.text is string && request.resource.data.text.size() <= 500
+            && ((request.resource.data.authorUid == request.auth.uid && (request.resource.data.byProposer == false || ownsIdea(id)))
+              || (request.resource.data.authorUid == null && request.resource.data.byProposer == true && ownsIdea(id))));
+        allow update: if isOperator();
+        allow delete: if isOperator() || (ownsIdea(id) && !existsAfter(ideaDoc(id)));
+      }
+    }
+
+    // "내 활동"의 내 좋아요·내 댓글 조회용
+    match /{path=**}/likes/{uid} {
+      allow read: if signedIn();
+    }
+    match /{path=**}/comments/{cid} {
+      allow read: if signedIn();
+    }
+
+    match /reviews/{roundId} {
+      allow read, write: if isStaff();
+    }
+
+    match /wos/{number} {
+      allow read: if signedIn();
+      allow write: if isOperator();
+    }
+
+    match /rewards/{rid} {
+      allow read: if signedIn() && (resource.data.uid == request.auth.uid || isOperator());
+      allow write: if isOperator();
+    }
+
+    match /meta/{docId} {
+      allow read: if signedIn();
+      allow write: if isOperator();
+    }
+  }
+}
