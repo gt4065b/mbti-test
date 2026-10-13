@@ -359,6 +359,18 @@ export const DICT = {
   'WOS 번호': { en: 'WOS number', zh: 'WOS 编号' },
   '사유': { en: 'Reason', zh: '理由' },
 
+  // ── 왼쪽 메뉴
+  '메뉴 열기': { en: 'Open menu', zh: '打开菜单' },
+  '메뉴 닫기': { en: 'Close menu', zh: '关闭菜单' },
+  '아이디어 보기': { en: 'Browse ideas', zh: '浏览创意' },
+  '최다 좋아요 아이디어': { en: 'Most liked ideas', zh: '最多点赞创意' },
+  '승인 진행 중': { en: 'In progress', zh: '审批进行中' },
+  '승인 완료 (정규 WOS)': { en: 'Approved (WOS)', zh: '已批准（正式 WOS）' },
+  '전체 아이디어': { en: 'All ideas', zh: '全部创意' },
+  '바로가기': { en: 'Go to', zh: '快捷入口' },
+  '설정': { en: 'Settings', zh: '设置' },
+  '{n}건': { en: '{n}', zh: '{n} 件' },
+
   // ── 관리
   '관리자만 볼 수 있습니다.': { en: 'Only administrators can view this page.', zh: '仅系统管理员可查看。' },
   '역할 부여': { en: 'Assign roles', zh: '分配角色' },
