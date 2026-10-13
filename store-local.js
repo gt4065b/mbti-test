@@ -1,6 +1,8 @@
 // 체험 모드 저장소: 모든 데이터를 이 브라우저(localStorage)에만 저장합니다.
 // Firebase를 연결하기 전에 화면과 흐름을 시험해 보는 용도입니다.
 
+import { t } from './i18n.js';
+
 const DB_KEY = 'wos-demo-db-v1';
 const UID_KEY = 'wos-demo-uid';
 const DAY = 86400000;
@@ -78,7 +80,7 @@ export function create() {
   let db;
   try { db = JSON.parse(localStorage.getItem(DB_KEY)); } catch { db = null; }
   if (!db) db = seed();
-  const save = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch (e) { alert('브라우저 저장 공간이 가득 찼습니다. 첨부 파일을 줄여 주세요.'); throw e; } };
+  const save = () => { try { localStorage.setItem(DB_KEY, JSON.stringify(db)); } catch (e) { alert(t('브라우저 저장 공간이 가득 찼습니다. 첨부 파일을 줄여 주세요.')); throw e; } };
   save();
 
   let authCb = () => {};

@@ -1,0 +1,376 @@
+// 다국어 지원: 한국어(기본) · English · 中文(简体)
+// 화면 문구는 한국어 원문을 열쇠로 쓰고, 아래 사전에서 영어·중국어를 찾습니다.
+// 사전에 없는 문구는 한국어 그대로 보입니다. {n} 같은 자리는 실제 값으로 바뀝니다.
+// 사용자가 쓴 아이디어·댓글 내용은 번역하지 않습니다.
+
+export const LANGS = { ko: '한국어', en: 'English', zh: '中文' };
+const LANG_KEY = 'wos-lang';
+
+function detect() {
+  try { const saved = localStorage.getItem(LANG_KEY); if (saved && LANGS[saved]) return saved; } catch { /* 저장소 사용 불가 */ }
+  const nav = (navigator.language || 'ko').toLowerCase();
+  if (nav.startsWith('zh')) return 'zh';
+  if (nav.startsWith('ko')) return 'ko';
+  return 'en';
+}
+
+export let lang = detect();
+document.documentElement.lang = lang === 'zh' ? 'zh-CN' : lang;
+
+export function setLang(l) {
+  if (!LANGS[l]) return;
+  lang = l;
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : l;
+  try { localStorage.setItem(LANG_KEY, l); } catch { /* 저장소 사용 불가 */ }
+}
+
+export function t(key, vars) {
+  const entry = DICT[key];
+  let s = (lang !== 'ko' && entry && entry[lang]) || key;
+  if (vars) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+  return s;
+}
+
+// 요일이 붙은 짧은 날짜: 11/5(목) · 11/5 (Thu) · 11/5(周四)
+export function weekday(d) {
+  const locale = { ko: 'ko-KR', en: 'en-US', zh: 'zh-CN' }[lang];
+  return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(d);
+}
+
+export const DICT = {
+  // ── 공통 · 틀
+  'WOS 아이디어 뱅크': { en: 'WOS Idea Bank', zh: 'WOS 创意银行' },
+  '체험 모드': { en: 'Demo mode', zh: '体验模式' },
+  'Firebase 연결 전: 이 브라우저에만 저장됩니다': { en: 'Not connected to Firebase: data is saved in this browser only', zh: '未连接 Firebase：数据仅保存在此浏览器中' },
+  '홈': { en: 'Home', zh: '首页' },
+  '정규 WOS': { en: 'WOS List', zh: '正式 WOS' },
+  '등록': { en: 'Submit', zh: '提交' },
+  '내 활동': { en: 'My Activity', zh: '我的活动' },
+  '심의': { en: 'Review', zh: '评审' },
+  '관리': { en: 'Admin', zh: '管理' },
+  '로그아웃': { en: 'Log out', zh: '退出登录' },
+  '언어': { en: 'Language', zh: '语言' },
+  '불러오는 중…': { en: 'Loading…', zh: '加载中…' },
+  '화면을 불러오지 못했습니다.': { en: 'Could not load this page.', zh: '无法加载此页面。' },
+  '처리하지 못했습니다: {msg}': { en: 'Something went wrong: {msg}', zh: '处理失败：{msg}' },
+  '저장': { en: 'Save', zh: '保存' },
+  '취소': { en: 'Cancel', zh: '取消' },
+  '저장했습니다': { en: 'Saved', zh: '已保存' },
+  '방금': { en: 'just now', zh: '刚刚' },
+  '{n}분 전': { en: '{n} min ago', zh: '{n} 分钟前' },
+  '{n}시간 전': { en: '{n} h ago', zh: '{n} 小时前' },
+  '{n}일 전': { en: '{n} days ago', zh: '{n} 天前' },
+  '@{domain} 학교 계정으로만 로그인할 수 있습니다.': { en: 'Please sign in with your @{domain} university account.', zh: '只能使用 @{domain} 学校账号登录。' },
+  '사용자 정보를 불러오지 못했습니다: {msg}': { en: 'Could not load your user profile: {msg}', zh: '无法加载用户信息：{msg}' },
+  '브라우저 저장 공간이 가득 찼습니다. 첨부 파일을 줄여 주세요.': { en: 'Browser storage is full. Please use smaller attachments.', zh: '浏览器存储空间已满，请减小附件。' },
+
+  // ── 상태 · 결정 · 역할 · 보상
+  '의견 수렴': { en: 'Collecting feedback', zh: '征集意见' },
+  '심의 대기': { en: 'Awaiting review', zh: '待评审' },
+  '정규 WOS 등재': { en: 'Listed as WOS', zh: '列入正式 WOS' },
+  '보류': { en: 'On hold', zh: '暂缓' },
+  '미채택': { en: 'Not adopted', zh: '未采纳' },
+  '병합': { en: 'Merged', zh: '已合并' },
+  '등재': { en: 'List', zh: '列入' },
+  '구성원': { en: 'Member', zh: '成员' },
+  '센터 운영자': { en: 'Center operator', zh: '中心管理员' },
+  '추진위원': { en: 'Committee member', zh: '推进委员' },
+  '관리자': { en: 'Administrator', zh: '系统管理员' },
+  '챌린지 포인트': { en: 'Challenge points', zh: '挑战积分' },
+  '포상금': { en: 'Cash award', zh: '奖金' },
+  '특별상': { en: 'Special award', zh: '特别奖' },
+  '금액 미정': { en: 'Amount TBD', zh: '金额待定' },
+  '미정': { en: 'TBD', zh: '待定' },
+  '하루': { en: 'Day', zh: '每天' },
+  '주': { en: 'Week', zh: '每周' },
+  '월': { en: 'Month', zh: '每月' },
+
+  // ── 심의 기준
+  '업무 절감 효과': { en: 'Work saved', zh: '工作节省效果' },
+  '구성원 공감': { en: 'Member support', zh: '成员共鸣' },
+  '확산 가능성': { en: 'Reusability', zh: '推广可能性' },
+  '구현 가능성': { en: 'Feasibility', zh: '实施可能性' },
+  '위험·개인정보': { en: 'Risk & privacy', zh: '风险与隐私' },
+  '반복 빈도 × 소요시간, 영향받는 사람 수': { en: 'Frequency × time per task, number of people affected', zh: '重复频率 × 所需时间，受影响人数' },
+  '좋아요 수와 댓글 내용, 여러 부서의 반응인지 (최대 20점)': { en: 'Likes and comments, and whether support comes from several departments (max 20)', zh: '点赞数与评论内容，是否来自多个部门（最高 20 分）' },
+  '다른 학과·부서에도 그대로 쓸 수 있는지': { en: 'Can other departments use it as is?', zh: '其他院系·部门能否直接使用' },
+  '필요 자원, 샘플 사이트가 있으면 가산': { en: 'Resources needed; bonus for a sample site', zh: '所需资源；有示例网站可加分' },
+  '개인정보 처리, 최종 판단을 사람이 하는지': { en: 'Personal data handling; does a person make the final call?', zh: '个人信息处理；最终判断是否由人做出' },
+
+  // ── 분야 · 대상 · 구분 · 예/아니오 · 진행 단계 (저장값은 한국어, 화면에서만 번역)
+  '학사': { en: 'Academic affairs', zh: '学务' },
+  '수업': { en: 'Teaching', zh: '教学' },
+  '학생지원': { en: 'Student support', zh: '学生支持' },
+  '행정': { en: 'Administration', zh: '行政' },
+  '연구': { en: 'Research', zh: '科研' },
+  '기타': { en: 'Other', zh: '其他' },
+  '학생': { en: 'Students', zh: '学生' },
+  '조교': { en: 'TAs', zh: '助教' },
+  '교원': { en: 'Faculty', zh: '教师' },
+  '직원': { en: 'Staff', zh: '职员' },
+  '예': { en: 'Yes', zh: '是' },
+  '아니오': { en: 'No', zh: '否' },
+  '모름': { en: 'Not sure', zh: '不确定' },
+  '실행계획서 작성': { en: 'Action plan', zh: '撰写实施计划' },
+  '예산 배정': { en: 'Budgeting', zh: '预算分配' },
+  '개발': { en: 'Development', zh: '开发' },
+  '실증': { en: 'Pilot', zh: '试点验证' },
+  '확산': { en: 'Rollout', zh: '推广' },
+  '완료': { en: 'Done', zh: '完成' },
+  '익명 제안자': { en: 'Anonymous proposer', zh: '匿名提案人' },
+
+  // ── 로그인 · 프로필
+  '업무 개선 아이디어를 언제든 올리고, 좋아요·댓글로 함께 다듬어 격주 심의에 올립니다.': {
+    en: 'Share ideas to improve our work at any time. Colleagues refine them with likes and comments, and the committee reviews them every two weeks.',
+    zh: '随时提交改进工作的创意，同事通过点赞和评论共同完善，委员会每两周评审一次。' },
+  'Firebase 연결 전이라 이 브라우저에만 저장됩니다. 역할별 화면을 보려면 아래 사용자 중 하나로 들어가세요.': {
+    en: 'Data is saved in this browser only. Pick a sample user below to see the screens for each role.',
+    zh: '数据仅保存在此浏览器中。请选择下方的示例用户，查看各角色的页面。' },
+  '체험 데이터 초기화': { en: 'Reset demo data', zh: '重置体验数据' },
+  '체험 데이터를 처음 상태로 되돌릴까요?': { en: 'Reset the demo data to its original state?', zh: '要将体验数据恢复到初始状态吗？' },
+  '초기화했습니다': { en: 'Reset complete', zh: '已重置' },
+  '우송대 교원·직원은 학교 구글 계정(@{domain})으로 로그인하세요.': {
+    en: 'Woosong University faculty and staff: sign in with your university Google account (@{domain}).',
+    zh: '又松大学教职员工请使用学校 Google 账号（@{domain}）登录。' },
+  '학교 구글 계정으로 로그인': { en: 'Sign in with university Google account', zh: '使用学校 Google 账号登录' },
+  '처음 오셨네요! 소속을 알려 주세요': { en: 'Welcome! Tell us where you work', zh: '欢迎！请填写您的所属单位' },
+  '내 정보 수정': { en: 'Edit my profile', zh: '修改个人信息' },
+  '아이디어를 등록할 때 소속이 자동으로 들어갑니다.': { en: 'Your department is filled in automatically when you submit an idea.', zh: '提交创意时会自动填入您的所属单位。' },
+  '이름': { en: 'Name', zh: '姓名' },
+  '소속(학과·부서)': { en: 'Department / office', zh: '所属（院系·部门）' },
+  '예: AI경영학과': { en: 'e.g. Dept. of AI Business', zh: '例：AI 经营学科' },
+  '구분': { en: 'Position', zh: '类别' },
+
+  // ── 홈
+  '다음 심의': { en: 'Next review', zh: '下次评审' },
+  '{date}까지 등록한 아이디어가 이번 심의 대상입니다': { en: 'Ideas submitted by {date} are included in this review', zh: '截至 {date} 提交的创意将参加本次评审' },
+  '아이디어 올리기': { en: 'Share an idea', zh: '提交创意' },
+  '🔥 이번 주 인기 아이디어': { en: '🔥 Popular this week', zh: '🔥 本周热门创意' },
+  '검색 (제목·내용)': { en: 'Search (title, content)', zh: '搜索（标题·内容）' },
+  '최신순': { en: 'Newest', zh: '最新' },
+  '좋아요순': { en: 'Most liked', zh: '最多点赞' },
+  '댓글순': { en: 'Most comments', zh: '最多评论' },
+  '전체 분야': { en: 'All categories', zh: '全部领域' },
+  '전체 상태': { en: 'All statuses', zh: '全部状态' },
+  '샘플 있음': { en: 'Has sample', zh: '有示例' },
+  '숨김': { en: 'Hidden', zh: '已隐藏' },
+  '조건에 맞는 아이디어가 없습니다.': { en: 'No ideas match your filters.', zh: '没有符合条件的创意。' },
+  '첫 아이디어를 올려 보세요 →': { en: 'Share the first one →', zh: '来提交第一个创意吧 →' },
+
+  // ── 상세
+  '바로가기 ↗': { en: 'Open ↗', zh: '打开 ↗' },
+  '화면 미리보기': { en: 'Preview', zh: '页面预览' },
+  "미리보기를 막아 둔 사이트는 '바로가기'로 열어 주세요.": { en: "If the preview is blocked, use 'Open'.", zh: '如果网站禁止预览，请点击“打开”。' },
+  '아이디어를 찾을 수 없습니다.': { en: 'Idea not found.', zh: '找不到该创意。' },
+  '목록으로': { en: 'Back to list', zh: '返回列表' },
+  '← 목록': { en: '← List', zh: '← 列表' },
+  '제안자': { en: 'Proposer', zh: '提案人' },
+  '답글': { en: 'Reply', zh: '回复' },
+  '숨김 처리됨': { en: 'Hidden', zh: '已隐藏' },
+  '{date} 등록': { en: 'Submitted {date}', zh: '{date} 提交' },
+  '보완 재상정': { en: 'Revised & resubmitted', zh: '补充后重新提交' },
+  '이 아이디어는 다른 아이디어에 병합되었습니다.': { en: 'This idea was merged into another idea.', zh: '此创意已合并到另一个创意。' },
+  '합쳐진 아이디어 보기 →': { en: 'View merged idea →', zh: '查看合并后的创意 →' },
+  '지금은 이렇게 하고 있어요': { en: 'How we do it now', zh: '目前的做法' },
+  '이렇게 바꾸고 싶어요': { en: 'What I want to change', zh: '希望改成' },
+  '대상 사용자': { en: 'Who uses it', zh: '使用对象' },
+  '반복 빈도': { en: 'Frequency', zh: '重复频率' },
+  '{unit} {count}건 × 건당 {min}분': { en: '{count} per {unit} × {min} min each', zh: '{unit} {count} 件 × 每件 {min} 分钟' },
+  '연간 절감시간': { en: 'Hours saved per year', zh: '每年节省时间' },
+  '약 {h}시간': { en: 'about {h} hours', zh: '约 {h} 小时' },
+  '다른 학과 활용': { en: 'Usable elsewhere', zh: '其他院系可用' },
+  '함께할 사람': { en: 'Co-proposers', zh: '共同提案人' },
+  '샘플 사이트': { en: 'Sample sites', zh: '示例网站' },
+  '첨부': { en: 'Attachments', zh: '附件' },
+  '(체험 모드: 1MB 초과 파일은 보관 안 함)': { en: '(demo mode: files over 1 MB are not stored)', zh: '（体验模式：不保存超过 1MB 的文件）' },
+  '좋아요': { en: 'Like', zh: '点赞' },
+  '보완하기': { en: 'Revise', zh: '补充完善' },
+  '수정': { en: 'Edit', zh: '修改' },
+  '삭제': { en: 'Delete', zh: '删除' },
+  '보류된 아이디어입니다. 심의 사유를 참고해 내용을 보완하면 다음 회차에 다시 올라갑니다.': {
+    en: 'This idea is on hold. Revise it based on the review comments and it will go to the next review.',
+    zh: '此创意已暂缓。参考评审意见补充内容后，将在下一轮重新评审。' },
+  '심의 이력과 결정 사유': { en: 'Review history & reasons', zh: '评审记录与决定理由' },
+  '{date} 심의': { en: 'review on {date}', zh: '{date} 评审' },
+  '평균 {n}점': { en: 'avg. {n} pts', zh: '平均 {n} 分' },
+  '상태 변경: {s}': { en: 'Status changed: {s}', zh: '状态变更：{s}' },
+  '「{title}」에 병합되었습니다.': { en: 'Merged into "{title}".', zh: '已合并到「{title}」。' },
+  '댓글 {n}': { en: 'Comments {n}', zh: '评论 {n}' },
+  '첫 의견을 남겨 주세요.': { en: 'Be the first to comment.', zh: '来发表第一条意见吧。' },
+  '제안자로 답하거나 내용을 보완해 주세요': { en: 'Reply as the proposer or add details', zh: '以提案人身份回复或补充内容' },
+  '의견이나 경험을 나눠 주세요': { en: 'Share your thoughts or experience', zh: '分享您的意见或经验' },
+  '답글 등록': { en: 'Post reply', zh: '发表回复' },
+  '이 아이디어를 삭제할까요? 좋아요와 댓글도 함께 사라집니다.': { en: 'Delete this idea? Its likes and comments will be deleted too.', zh: '要删除此创意吗？点赞和评论也会一并删除。' },
+  '삭제했습니다': { en: 'Deleted', zh: '已删除' },
+
+  // ── 운영자 도구
+  '운영자 도구': { en: 'Operator tools', zh: '管理员工具' },
+  '실제 제안자': { en: 'Actual proposer', zh: '实际提案人' },
+  '확인 중…': { en: 'Checking…', zh: '确认中…' },
+  '알 수 없음': { en: 'Unknown', zh: '未知' },
+  '등록 {n}일째': { en: 'day {n} since submission', zh: '提交第 {n} 天' },
+  '내용 확인 → 심의 대기': { en: 'Confirm → Awaiting review', zh: '确认内容 → 待评审' },
+  '(+{p}P 지급)': { en: '(+{p} pts)', zh: '（发放 +{p} 积分）' },
+  '숨김 해제': { en: 'Unhide', zh: '取消隐藏' },
+  '부적절 글 숨김': { en: 'Hide as inappropriate', zh: '隐藏不当内容' },
+  '비슷한 아이디어와 병합': { en: 'Merge with a similar idea', zh: '与相似创意合并' },
+  '합칠 대상 선택…': { en: 'Choose idea to merge into…', zh: '选择合并对象…' },
+  "좋아요·댓글이 선택한 아이디어로 옮겨지고, 이 글은 '병합' 상태로 목록에 남습니다.": {
+    en: "Likes and comments move to the chosen idea; this one stays in the list as 'Merged'.",
+    zh: '点赞和评论将移至所选创意，本条以“已合并”状态保留在列表中。' },
+  '상태 직접 변경': { en: 'Change status manually', zh: '手动更改状态' },
+  '변경': { en: 'Change', zh: '更改' },
+  '등록 후 {n}일이 지나지 않았습니다. 그래도 심의 대기로 넘길까요?': { en: 'It has been less than {n} days since submission. Move it to review anyway?', zh: '提交未满 {n} 天。仍要转为待评审吗？' },
+  '심의 대기로 넘겼습니다': { en: 'Moved to review', zh: '已转为待评审' },
+  '심의 대기로 넘기고 {p}P를 지급했습니다': { en: 'Moved to review and awarded {p} pts', zh: '已转为待评审并发放 {p} 积分' },
+  '합칠 대상을 고르세요.': { en: 'Choose an idea to merge into.', zh: '请选择合并对象。' },
+  '병합하면 되돌리기 어렵습니다. 진행할까요?': { en: 'Merging is hard to undo. Continue?', zh: '合并后难以恢复。确定继续吗？' },
+  '병합했습니다': { en: 'Merged', zh: '已合并' },
+
+  // ── 등록 양식
+  '수정할 수 없는 아이디어입니다. (심의가 시작되면 수정할 수 없어요)': { en: 'This idea can no longer be edited (editing closes once review starts).', zh: '此创意无法修改（评审开始后不能修改）。' },
+  '← 돌아가기': { en: '← Back', zh: '← 返回' },
+  '아이디어 보완하기': { en: 'Revise idea', zh: '补充完善创意' },
+  '아이디어 수정': { en: 'Edit idea', zh: '修改创意' },
+  '아이디어 등록': { en: 'Submit an idea', zh: '提交创意' },
+  '임시 저장된 내용을 불러왔습니다.': { en: 'Your saved draft was restored.', zh: '已恢复暂存的内容。' },
+  '새로 쓰기': { en: 'Start over', zh: '重新填写' },
+  '보완해서 저장하면 다음 회차 심의에 다시 올라갑니다.': { en: 'Once you save your revision, it goes to the next review.', zh: '补充保存后，将在下一轮重新评审。' },
+  '⭐ 표시 5개 항목만 쓰면 등록됩니다. 1분이면 충분해요.': { en: 'Only the 5 ⭐ fields are required. It takes about a minute.', zh: '只需填写 5 个 ⭐ 项目即可提交，一分钟就够。' },
+  '⭐ 제목': { en: '⭐ Title', zh: '⭐ 标题' },
+  '예: 휴강·복학 문의 자동 응답': { en: 'e.g. Auto-answer class cancellation & re-enrollment questions', zh: '例：停课·复学咨询自动回复' },
+  '⭐ 지금 어떻게 하고 있나요?': { en: '⭐ How is it done now?', zh: '⭐ 目前是怎么做的？' },
+  '(3줄 이내)': { en: '(up to 3 lines)', zh: '（3 行以内）' },
+  '예: 학기마다 조교가 같은 문의에 일일이 답함': { en: 'e.g. Every semester TAs answer the same questions one by one', zh: '例：每学期助教逐一回答相同的咨询' },
+  '⭐ 바꾸고 싶은 모습': { en: '⭐ What should change?', zh: '⭐ 希望改成什么样' },
+  '예: FAQ는 자동 답변, 나머지만 담당자 연결': { en: 'e.g. FAQs answered automatically; only the rest go to staff', zh: '例：常见问题自动回复，其余转给负责人' },
+  '⭐ 분야': { en: '⭐ Category', zh: '⭐ 领域' },
+  '선택하세요': { en: 'Choose', zh: '请选择' },
+  '⭐ 제안자 소속': { en: '⭐ Proposer department', zh: '⭐ 提案人所属' },
+  '익명': { en: 'Anonymous', zh: '匿名' },
+  '(로그인 정보에서 자동 입력)': { en: '(filled in from your profile)', zh: '（根据登录信息自动填写）' },
+  '⭐ 공개 방식': { en: '⭐ Show my name?', zh: '⭐ 公开方式' },
+  '실명': { en: 'Use my name', zh: '实名' },
+  "익명이면 화면에 '익명 제안자'로 보이고, 실제 제안자는 운영자만 확인합니다. 포인트는 익명이어도 본인에게 쌓입니다.": {
+    en: "If anonymous, you appear as 'Anonymous proposer' and only operators can see who you are. You still earn the points.",
+    zh: '选择匿名时显示为“匿名提案人”，只有管理员能看到实际提案人。匿名也会为本人累积积分。' },
+  '(등록 후에는 바꿀 수 없어요)': { en: '(cannot be changed after submission)', zh: '（提交后无法更改）' },
+  '선택 항목 (심의에 도움이 됩니다)': { en: 'Optional details (helpful for review)', zh: '可选项目（有助于评审）' },
+  '샘플 사이트 주소': { en: 'Sample site URLs', zh: '示例网站地址' },
+  '(한 줄에 하나, 심의 가산점)': { en: '(one per line, earns bonus points)', zh: '（每行一个，评审加分）' },
+  '반복 빈도와 소요시간': { en: 'Frequency and time per task', zh: '重复频率与所需时间' },
+  '건수': { en: 'Count', zh: '件数' },
+  '건 ×': { en: 'times ×', zh: '件 ×' },
+  '분': { en: 'min', zh: '分钟' },
+  '다른 학과에도 쓸 수 있나요?': { en: 'Could other departments use it?', zh: '其他院系也能使用吗？' },
+  '(이미지·PDF, 파일당 5MB 이하)': { en: '(images or PDF, max 5 MB each)', zh: '（图片·PDF，每个文件 5MB 以内）' },
+  '(이름, 쉼표로 구분)': { en: '(names, separated by commas)', zh: '（姓名，用逗号分隔）' },
+  '예: 홍길동, 김철수': { en: 'e.g. Jane Kim, Wei Zhang', zh: '例：张伟, 金哲秀' },
+  '등록하기': { en: 'Submit', zh: '提交' },
+  '연간 약 {h}시간 절감 예상': { en: 'About {h} hours saved per year', zh: '预计每年节省约 {h} 小时' },
+  '(심의·예산 요청 근거로 쓰입니다)': { en: '(used as evidence for review and budget requests)', zh: '（作为评审和预算申请的依据）' },
+  '비슷한 아이디어가 있어요.': { en: 'Similar ideas already exist.', zh: '已有相似的创意。' },
+  '같은 내용이면 새로 올리기보다 좋아요·댓글로 힘을 보태 주세요.': { en: 'If it is the same idea, please support it with a like or comment instead.', zh: '如果内容相同，请通过点赞或评论来支持，而不是重新提交。' },
+  '제목을 써 주세요.': { en: 'Please enter a title.', zh: '请填写标题。' },
+  '제목은 40자 이내로 써 주세요.': { en: 'Title must be 40 characters or fewer.', zh: '标题请控制在 40 字以内。' },
+  '지금 어떻게 하고 있는지 써 주세요.': { en: 'Please describe how it is done now.', zh: '请填写目前的做法。' },
+  '바꾸고 싶은 모습을 써 주세요.': { en: 'Please describe what should change.', zh: '请填写希望改成的样子。' },
+  '현재 방식과 바꾸고 싶은 모습은 각각 3줄 이내로 써 주세요.': { en: 'Keep "now" and "change" to 3 lines each.', zh: '目前做法和希望改成的样子各请控制在 3 行以内。' },
+  '분야를 골라 주세요.': { en: 'Please choose a category.', zh: '请选择领域。' },
+  '샘플 주소가 올바르지 않습니다: {url}': { en: 'Invalid sample URL: {url}', zh: '示例地址不正确：{url}' },
+  '{name}: 5MB를 넘습니다.': { en: '{name}: larger than 5 MB.', zh: '{name}：超过 5MB。' },
+  '{name}: 이미지나 PDF만 올릴 수 있습니다.': { en: '{name}: only images or PDFs are allowed.', zh: '{name}：只能上传图片或 PDF。' },
+  '보완했습니다. 다음 회차에 다시 심의합니다': { en: 'Revised. It will be reviewed again next round', zh: '已补充，将在下一轮重新评审' },
+  '등록했습니다! 7일 동안 의견을 받습니다': { en: 'Submitted! Feedback is open for 7 days', zh: '提交成功！将征集 7 天意见' },
+
+  // ── 정규 WOS
+  '정규 WOS 리스트': { en: 'Official WOS List', zh: '正式 WOS 列表' },
+  '추진위원회가 등재한 아이디어입니다. 번호를 받은 뒤 실행계획서 단계로 넘어갑니다.': {
+    en: 'Ideas listed by the committee. Each gets a WOS number and moves on to an action plan.',
+    zh: '由推进委员会列入的创意。获得编号后进入实施计划阶段。' },
+  '담당: {org}': { en: 'Owner: {org}', zh: '负责：{org}' },
+  '{date} 등재': { en: 'Listed {date}', zh: '{date} 列入' },
+  '담당 조직': { en: 'Owning unit', zh: '负责部门' },
+  '아직 등재된 WOS가 없습니다. 첫 심의는 {date}입니다.': { en: 'No WOS listed yet. The first review is on {date}.', zh: '尚无列入的 WOS。首次评审为 {date}。' },
+
+  // ── 내 활동
+  '누적 챌린지 포인트': { en: 'Total challenge points', zh: '累计挑战积分' },
+  '🔔 심의 결과 알림': { en: '🔔 Review results', zh: '🔔 评审结果通知' },
+  '아직 심의 결과가 없습니다.': { en: 'No review results yet.', zh: '暂无评审结果。' },
+  '내가 올린 아이디어 {n}': { en: 'My ideas {n}', zh: '我提交的创意 {n}' },
+  '아직 없습니다.': { en: 'Nothing yet.', zh: '暂无。' },
+  '아이디어 올리기 →': { en: 'Share an idea →', zh: '提交创意 →' },
+  '보상 내역': { en: 'Rewards', zh: '奖励记录' },
+  '날짜': { en: 'Date', zh: '日期' },
+  '종류': { en: 'Type', zh: '类型' },
+  '아이디어': { en: 'Idea', zh: '创意' },
+  '내용': { en: 'Details', zh: '内容' },
+  '{n}원': { en: 'KRW {n}', zh: '{n} 韩元' },
+  '아이디어를 올리고 운영자 확인을 받으면 포인트가 쌓입니다.': { en: 'You earn points once an operator confirms your idea.', zh: '提交创意并经管理员确认后即可累积积分。' },
+  '내 좋아요 · 댓글': { en: 'My likes & comments', zh: '我的点赞 · 评论' },
+  '좋아요 내역을 불러오지 못했습니다.': { en: 'Could not load your likes.', zh: '无法加载点赞记录。' },
+  '(삭제된 아이디어)': { en: '(deleted idea)', zh: '（已删除的创意）' },
+
+  // ── 심의
+  '운영자·추진위원만 볼 수 있습니다.': { en: 'Only operators and committee members can view this page.', zh: '仅管理员和推进委员可查看。' },
+  '{n}회차': { en: 'Round {n}', zh: '第 {n} 轮' },
+  '{cutoff}까지 등록되고 운영자 확인을 마친 아이디어(심의 대기)가 안건 대상입니다. 안건 목록은 심의 3일 전({send})에 위원에게 보냅니다.': {
+    en: 'Ideas submitted by {cutoff} and confirmed by an operator (awaiting review) are eligible. The agenda is sent to the committee 3 days before ({send}).',
+    zh: '截至 {cutoff} 提交并经管理员确认（待评审）的创意可列入议程。议程将于评审前 3 天（{send}）发送给委员。' },
+  '운영자: 안건 정리': { en: 'Operator: prepare agenda', zh: '管理员：整理议程' },
+  '내용 확인이 필요한 아이디어 {n}건': { en: '{n} ideas need confirming', zh: '需确认内容的创意 {n} 件' },
+  '(의견 수렴 {n}일 경과)': { en: '(feedback open for {n}+ days)', zh: '（征集意见已满 {n} 天）' },
+  '확인 → 심의 대기': { en: 'Confirm → review', zh: '确认 → 待评审' },
+  '안건에 넣을 수 있는 아이디어 {n}건': { en: '{n} ideas can be added to the agenda', zh: '可列入议程的创意 {n} 件' },
+  '재상정': { en: 'Resubmitted', zh: '重新提交' },
+  '선택한 아이디어로 안건 묶음 만들기': { en: 'Create agenda from selected ideas', zh: '用所选创意创建议程' },
+  '추가할 아이디어가 없습니다.': { en: 'No ideas to add.', zh: '没有可添加的创意。' },
+  '※ 심의 대기지만 등록일이 늦어 다음 회차로 넘어가는 아이디어 {n}건': { en: '※ {n} ideas are awaiting review but were submitted too late; they move to the next round', zh: '※ 有 {n} 件待评审创意因提交较晚，将顺延至下一轮' },
+  '{no}회차 안건 {n}건': { en: 'Round {no} agenda: {n}', zh: '第 {no} 轮议程 {n} 件' },
+  '회의록 내보내기(CSV)': { en: 'Export minutes (CSV)', zh: '导出会议记录（CSV）' },
+  '안건 {n}': { en: 'Item {n}', zh: '议题 {n}' },
+  '샘플 있음 (가산)': { en: 'Has sample (bonus)', zh: '有示例（加分）' },
+  '연간 약 {h}시간 절감': { en: '~{h} h/year saved', zh: '每年约节省 {h} 小时' },
+  '확산: {v}': { en: 'Reusable: {v}', zh: '推广：{v}' },
+  '내 점수': { en: 'My score', zh: '我的评分' },
+  '위원 평균': { en: 'Committee avg.', zh: '委员平均' },
+  '({n}명)': { en: '({n})', zh: '（{n} 人）' },
+  '내 점수 저장': { en: 'Save my score', zh: '保存我的评分' },
+  '결정': { en: 'Decision', zh: '决定' },
+  '결정 사유 (사이트에 공개됩니다)': { en: 'Reason for decision (published on the site)', zh: '决定理由（将在网站公开）' },
+  '결정 저장': { en: 'Save decision', zh: '保存决定' },
+  '결정은 회의 후 운영자가 기록합니다.': { en: 'An operator records the decision after the meeting.', zh: '决定由管理员在会议后记录。' },
+  '아직 이 회차 안건이 없습니다.': { en: 'No agenda for this round yet.', zh: '本轮尚无议程。' },
+  '안건 묶음을 만들었습니다': { en: 'Agenda created', zh: '已创建议程' },
+  '{label}: 0~{max}점 사이로 입력해 주세요.': { en: '{label}: enter a score from 0 to {max}.', zh: '{label}：请输入 0~{max} 分。' },
+  '점수를 저장했습니다': { en: 'Score saved', zh: '评分已保存' },
+  '결정과 사유를 모두 입력해 주세요.': { en: 'Please choose a decision and enter a reason.', zh: '请填写决定和理由。' },
+  "「{title}」을(를) '{d}'(으)로 결정할까요? 결과와 사유가 공개됩니다.": { en: 'Set "{title}" to "{d}"? The result and reason will be published.', zh: '确定将「{title}」决定为“{d}”吗？结果和理由将公开。' },
+  '결정을 저장했습니다': { en: 'Decision saved', zh: '决定已保存' },
+  '회차': { en: 'Round', zh: '轮次' },
+  '심의일': { en: 'Review date', zh: '评审日' },
+  '안건': { en: 'Item', zh: '议题' },
+  '제목': { en: 'Title', zh: '标题' },
+  '분야': { en: 'Category', zh: '领域' },
+  '댓글': { en: 'Comments', zh: '评论' },
+  '평균 점수': { en: 'Average score', zh: '平均分' },
+  '평가 위원 수': { en: 'Reviewers', zh: '评审委员数' },
+  '{label} 평균': { en: '{label} avg.', zh: '{label} 平均' },
+  'WOS 번호': { en: 'WOS number', zh: 'WOS 编号' },
+  '사유': { en: 'Reason', zh: '理由' },
+
+  // ── 관리
+  '관리자만 볼 수 있습니다.': { en: 'Only administrators can view this page.', zh: '仅系统管理员可查看。' },
+  '역할 부여': { en: 'Assign roles', zh: '分配角色' },
+  '이름·소속·이메일 검색': { en: 'Search name, department, email', zh: '搜索姓名·所属·邮箱' },
+  '소속': { en: 'Department', zh: '所属' },
+  '포인트': { en: 'Points', zh: '积分' },
+  '역할': { en: 'Role', zh: '角色' },
+  '본인 역할은 바꿀 수 없습니다': { en: 'You cannot change your own role', zh: '不能更改自己的角色' },
+  '역할을 바꿨습니다': { en: 'Role updated', zh: '角色已更改' },
+  '분야·일정·보상 설정': { en: 'Categories, schedule & rewards', zh: '领域·日程·奖励设置' },
+  '분야 목록, 심의 일정, 포인트·포상금 금액은 config.js 파일에서 바꿉니다.': { en: 'Categories, review dates, points and award amounts are set in config.js.', zh: '领域列表、评审日程、积分和奖金金额在 config.js 文件中修改。' },
+  '분야: {list}': { en: 'Categories: {list}', zh: '领域：{list}' },
+  '심의일: {list} 이후 격주': { en: 'Review dates: {list}, then every two weeks', zh: '评审日：{list}，之后每两周一次' },
+  '제안 포인트: {p}P · 채택 포상금: {prize}': { en: 'Points per idea: {p} · Award when listed: {prize}', zh: '提案积分：{p} · 采纳奖金：{prize}' },
+};

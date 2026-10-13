@@ -1,5 +1,6 @@
 // Firebase 저장소: 학교 구글 계정 로그인 + Firestore + Storage
 
+import { t } from './i18n.js';
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
 import {
   getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut as fbSignOut,
@@ -42,10 +43,10 @@ export function create(config) {
         if (!fbUser) return cb(null);
         if (!domainOk(fbUser.email)) {
           await fbSignOut(auth);
-          alert(`@${config.allowedDomain} 학교 계정으로만 로그인할 수 있습니다.`);
+          alert(t('@{domain} 학교 계정으로만 로그인할 수 있습니다.', { domain: config.allowedDomain }));
           return cb(null);
         }
-        try { cb(await loadUser(fbUser)); } catch (e) { console.error(e); alert('사용자 정보를 불러오지 못했습니다: ' + e.message); cb(null); }
+        try { cb(await loadUser(fbUser)); } catch (e) { console.error(e); alert(t('사용자 정보를 불러오지 못했습니다: {msg}', { msg: e.message })); cb(null); }
       });
     },
     async signIn() {
