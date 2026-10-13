@@ -44,7 +44,8 @@ code { background: #eef0f3; padding: 1px 5px; border-radius: 4px; font-size: .9e
 }
 .brand { font-weight: 800; color: var(--text); font-size: 1.02rem; white-space: nowrap; }
 .mode { font-size: .72rem; background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
-.userbox { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.lang { margin-left: auto; width: auto; padding: 5px 8px; font-size: 14px; border-radius: 8px; }
+.userbox { display: flex; align-items: center; gap: 8px; }
 .who { display: flex; flex-direction: column; align-items: flex-end; font-size: .85rem; font-weight: 600; line-height: 1.2; }
 .who small { color: var(--muted); font-weight: 400; }
 
