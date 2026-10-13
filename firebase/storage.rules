@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// 첨부파일: 학교 계정만, 이미지·PDF, 5MB 이하
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /ideas/{ideaId}/{file} {
+      allow read: if request.auth != null && request.auth.token.email.matches('.*@wsu[.]ac[.]kr$');
+      allow create: if request.auth != null && request.auth.token.email.matches('.*@wsu[.]ac[.]kr$')
+        && request.resource.size < 5 * 1024 * 1024
+        && (request.resource.contentType.matches('image/.*') || request.resource.contentType == 'application/pdf');
+    }
+  }
+}
