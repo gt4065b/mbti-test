@@ -55,15 +55,18 @@ service cloud.firestore {
         && ((request.resource.data.anonymous == true && request.resource.data.ownerUid == null && request.resource.data.authorName == '익명 제안자')
           || (request.resource.data.anonymous == false && request.resource.data.ownerUid == request.auth.uid));
 
+      // 수정 가능한 경우
+      //  1) 운영자
+      //  2) 제안자: 의견 수렴·보류 상태에서만 내용 수정 (보류 → 보완 시 심의 대기로 재상정)
+      //  3) 누구나: 본인 좋아요 문서를 함께 만들거나 지울 때 좋아요 수 ±1
+      //  4) 누구나: 댓글을 달 때 댓글 수 +1
       allow update: if isOperator()
-        // 제안자: 심의 전(의견 수렴) 또는 보류 상태에서만 내용 수정. 보류 → 보완 시 심의 대기로 재상정
         || (ownsIdea(id) && resource.data.status in ['collecting', 'hold']
           && onlyChanged(['title', 'asis', 'tobe', 'category', 'samples', 'targets', 'freqUnit', 'freqCount',
                           'minutes', 'reusable', 'coProposers', 'attachments', 'updatedAt', 'status', 'resubmitted'])
           && request.resource.data.title.size() <= 40
           && (request.resource.data.status == resource.data.status
             || (resource.data.status == 'hold' && request.resource.data.status == 'pending')))
-        // 좋아요 수: 본인 좋아요 문서를 함께 만들거나 지울 때만 ±1
         || (signedIn() && onlyChanged(['likeCount'])
           && ((request.resource.data.likeCount == resource.data.likeCount + 1
                 && existsAfter(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid))
@@ -71,12 +74,12 @@ service cloud.firestore {
             || (request.resource.data.likeCount == resource.data.likeCount - 1
                 && !existsAfter(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid))
                 && exists(/databases/$(database)/documents/ideas/$(id)/likes/$(request.auth.uid)))))
-        // 댓글 수: +1만
         || (signedIn() && onlyChanged(['commentCount'])
           && request.resource.data.commentCount == resource.data.commentCount + 1);
 
       allow delete: if isOperator() || (ownsIdea(id) && resource.data.status == 'collecting');
 
+      // 좋아요 삭제: 본인 취소, 제안자가 아이디어를 지울 때, 운영자
       match /likes/{uid} {
         allow read: if signedIn();
         allow create: if (signedIn() && uid == request.auth.uid && request.resource.data.uid == uid
@@ -84,7 +87,7 @@ service cloud.firestore {
           || isOperator();
         allow delete: if (signedIn() && uid == request.auth.uid
             && (!existsAfter(ideaDoc(id)) || getAfter(ideaDoc(id)).data.likeCount == get(ideaDoc(id)).data.likeCount - 1))
-          || (ownsIdea(id) && !existsAfter(ideaDoc(id)))   // 제안자가 아이디어를 지울 때
+          || (ownsIdea(id) && !existsAfter(ideaDoc(id)))
           || isOperator();
       }
 

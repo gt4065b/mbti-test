@@ -12,7 +12,14 @@ export const CONFIG = {
   //   messagingSenderId: '...',
   //   appId: '...',
   // },
-  firebase: null,
+  firebase: {
+    apiKey: 'AIzaSyDvEmX15M28vBkumyXJg7sQF1XTiH958pE',
+    authDomain: 'wos-idea-bank.firebaseapp.com',
+    projectId: 'wos-idea-bank',
+    storageBucket: 'wos-idea-bank.firebasestorage.app',
+    messagingSenderId: '262627985653',
+    appId: '1:262627985653:web:b324c33d299c2fb9eb1dbc',
+  },
 
   // 로그인 허용 도메인 (학교 구글 계정)
   allowedDomain: 'wsu.ac.kr',
